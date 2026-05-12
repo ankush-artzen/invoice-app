@@ -1,0 +1,8 @@
+type = "pos_ui_extension"
+name = "print-lieferschein"
+description = "print-lieferschein"
+
+extension_points = [
+  'Retail::SmartGrid::Tile',
+  'Retail::SmartGrid::Modal'
+]
