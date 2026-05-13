@@ -345,7 +345,10 @@ class SevDesk {
   }
 
   getPercentageFromTitle(title) {
-    const match = title.match(/\((\d+)%\)/);
+    if (!title) return null;
+
+const match = title.match(/\((\d+)%\)/);
+    // const match = title.match(/\((\d+)%\)/);
     if (match && match[1]) {
       return parseInt(match[1], 10);
     }
@@ -436,11 +439,11 @@ class SevDesk {
     let totalPrice = 0.0;
     let totalDiscount = 0.0;
 
-    // const variantTitle = order?.line_items[0].variant_title;
-    // console.log(variantTitle, "variantTitle***************");
+    const variantTitle = order?.line_items[0].variant_title;
+    console.log(variantTitle, "variantTitle***************");
 
-    // let variant_type = this.getPercentageFromTitle(variantTitle);
-    // console.log(variant_type, "variant_type***************");
+    let variant_type = this.getPercentageFromTitle(variantTitle);
+    console.log(variant_type, "variant_type***************");
 
     // order.line_items.forEach((item) => {
     //   const { quantity, price } = item;
@@ -453,10 +456,6 @@ class SevDesk {
 
     let LineItemsDiscountCode = null;
     order.line_items.forEach((item) => {
-      const itemTaxRate =
-  item.tax_lines?.length > 0
-    ? item.tax_lines[0].rate * 100
-    : 0;
       const { quantity, price } = item;
       totalPrice += quantity * price;
 
@@ -538,13 +537,13 @@ class SevDesk {
 
     //const taxId = hasMwStBefreiung ? "88970" : "88971";
 
-    // let taxRate = variant_type === null || variant_type === 0 ? "0" : "19";
-    // console.log(
-    //   taxText,
-    //   taxId,
-    //   taxRate,
-    //   "variant type checking****************"
-    // );
+    let taxRate = variant_type === null || variant_type === 0 ? "0" : "19";
+    console.log(
+      taxText,
+      taxId,
+      taxRate,
+      "variant type checking****************"
+    );
 
     if (order.source_name === "pos" && order.financial_status === "pending") {
       // taxText = "Steuerfrei 0% lt. § 12 Absatz 3 UStG";
@@ -648,11 +647,20 @@ class SevDesk {
     let MehrwertsteuerTrueB2B = false;
     let MehrwertsteuerTrueB2BAmount = false;
     order.line_items.forEach((item) => {
-      if (item.title === "Mehrwertsteuer 19%") {
-        MehrwertsteuerTrueB2B = true;
-        MehrwertsteuerTrueB2BAmount = item.price * item.quantity;
-        totalDiscount -= item.price * item.quantity;
-      }
+      // if (item.title === "Mehrwertsteuer 19%") {
+      //   MehrwertsteuerTrueB2B = true;
+      //   MehrwertsteuerTrueB2BAmount = item.price * item.quantity;
+      //   totalDiscount -= item.price * item.quantity;
+      // }
+      if (
+  item.title === "Mehrwertsteuer 19%" &&
+  order.total_discounts === "0.00"
+) {
+  MehrwertsteuerTrueB2B = true;
+  MehrwertsteuerTrueB2BAmount = item.price * item.quantity;
+
+  totalDiscount -= item.price * item.quantity;
+}
     });
 
     console.log("totalDiscount after mwst check: " + totalDiscount);
@@ -667,27 +675,28 @@ class SevDesk {
         item.title === "Mehrwertsteuer 19%"
       );
 
-      if (item.title === "Mehrwertsteuer 19%") return;
+      // if (item.title === "Mehrwertsteuer 19%") return;
 
       let { quantity, price, title } = item;
 
+      // --------------------
+      const itemVariantType = this.getPercentageFromTitle(item.variant_title);
+
+const itemTaxRate =
+  itemVariantType === null || itemVariantType === 0
+    ? "0"
+    : "19";
+
       // ----- 1. PROPORTIONAL DISCOUNT -----
-      // const proportionalDiscount =
-      //   ((quantity * price) / totalPrice) * totalDiscount;
-      const lineDiscount =
-      item.discount_allocations.reduce(
-        (sum, d) =>
-          sum + parseFloat(d.amount),
-        0
-      );
-    
-    const proportionalDiscount =
-      lineDiscount;
+      const proportionalDiscount =
+        ((quantity * price) / totalPrice) * totalDiscount;
+
       const grossDiscounted = price - proportionalDiscount / quantity;
       const grossRounded = Math.round(grossDiscounted * 100) / 100;
 
       // ----- 2. NET / GROSS VALUES -----
-      let net = grossRounded / (1 + taxRate / 100);
+      // let net = grossRounded / (1 + taxRate / 100);
+      let net = grossRounded / (1 + itemTaxRate / 100);
       let gross = grossRounded;
 
       // ----- 3. B2B LOGIC (USE NET PRICES) -----
@@ -810,7 +819,7 @@ class SevDesk {
         price: net,
         priceGross: gross,
         // taxRate: isB2B ? taxRate : taxRate,
-        taxRate: itemTaxRate,
+        taxRate: isB2B ? taxRate : itemTaxRate,
         name: title,
         unity: { id: 1, objectName: "Unity" },
       };
@@ -870,8 +879,8 @@ class SevDesk {
           }
         } else if (
           (shop_domain.includes("b2b") || customer.tags.includes("B2B")) &&
-          !item.title.toLowerCase().includes("mwst") &&
-          !item.title.toLowerCase().includes("mehrwertsteuer") &&
+          !(item.title || "").toLowerCase().includes("mwst") &&
+          !(item.title || "").toLowerCase().includes("mehrwertsteuer") &&
           item.value_type == "fixed_amount" &&
           item.type == "manual"
         ) {
@@ -1012,11 +1021,43 @@ class SevDesk {
 
     console.log("invoiceData", invoiceData);
     // return invoiceData;
-    const invoice = await this.sevDesk.createInvoice(invoiceData);
+//     const invoice = await this.sevDesk.createInvoice(invoiceData);
+//     console.log(
+//   JSON.stringify(invoiceData.invoicePosSave, null, 2)
+// );
+
+// return invoiceData;
+//   }
+// console.log(
+//   "FINAL FULL INVOICE JSON",
+//   JSON.stringify(invoiceData, null, 2)
+// );
+
+// return {
+//   debug: true,
+//   invoiceData
+// };
+  // const invoice = await this.sevDesk.createInvoice(invoiceData);
+  //   console.log("invoice", invoice);
+
+  //   return invoice.invoice;
+  
+  // }
+//   console.log(
+// //   JSON.stringify(invoiceData, null, 2)
+// );
+  const invoice = await this.sevDesk.createInvoice(invoiceData);
     console.log("invoice", invoice);
 
     return invoice.invoice;
   }
+
+
+ 
+  //   console.log("invoice", invoice);
+
+  //   return invoice.invoice;
+  // }
 
   async updateInvoice(order, customer, existingInvoice, shop_domain) {
     const sevUser = await this.sevDesk.getSevUser();
@@ -1467,21 +1508,28 @@ class SevDesk {
     let lineItemsPrice = 0;
 
     refund.refund_line_items.forEach((item) => {
-      const itemTaxRate =
-  line_item.tax_lines?.length > 0
-    ? line_item.tax_lines[0].rate * 100
-    : 0;
-    console.log(itemTaxRate, "itemTaxRate***************");
       const { quantity, line_item, subtotal } = item;
       const { price, title } = line_item;
 
       lineItemsPrice += subtotal;
 
-      const priceGross = subtotal / quantity;
+      // const priceGross = subtotal / quantity;
       // const priceNet = priceGross / (1 + taxRate / 100);
-      const priceNet = priceGross / (1 + itemTaxRate / 100);
-      const priceTax = priceGross - priceNet;
+      // const priceTax = priceGross - priceNet;
 
+      const itemTaxRate =
+  line_item.tax_lines?.[0]?.rate
+    ? line_item.tax_lines[0].rate * 100
+    : 0;
+
+const priceGross = subtotal / quantity;
+
+const priceNet =
+  itemTaxRate > 0
+    ? priceGross / (1 + itemTaxRate / 100)
+    : priceGross;
+
+const priceTax = priceGross - priceNet;
       const creditNotePos = {
         unity: { id: 1, objectName: "Unity" },
         quantity,
@@ -1491,7 +1539,7 @@ class SevDesk {
         taxSet,
         objectName: "CreditNotePos",
         // taxRate,
-        taxRate: itemTaxRate,
+        taxRate: itemTaxRate, 
         priceGross,
         priceTax,
         price: priceNet,
@@ -1549,6 +1597,18 @@ class SevDesk {
     }
 
     console.log("creditNoteData", creditNoteData);
+
+//     console.log(
+//   "FINAL CREDIT NOTE JSON",
+//   JSON.stringify(creditNoteData, null, 2)
+// );
+
+// return {
+//   debug: true,
+//   creditNoteData
+// };
+
+//   }
 
     const creditNoteResponse = await this.sevDesk.createCreditNote(
       creditNoteData
@@ -1673,4 +1733,3 @@ class SevDesk {
   }
 }
 export default SevDesk;
-
