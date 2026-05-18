@@ -95,10 +95,10 @@ class SevDesk {
 
     // Format the date and time using the options
     const formattedDate = new Intl.DateTimeFormat("de-DE", dateOptions).format(
-      date
+      date,
     );
     const formattedTime = new Intl.DateTimeFormat("de-DE", timeOptions).format(
-      date
+      date,
     );
 
     return { formattedDate, formattedTime };
@@ -284,7 +284,7 @@ class SevDesk {
         ) {
           const updatedCommunicationWay = await this.sevDesk.setCustomerEmail(
             customer.id,
-            contact.email
+            contact.email,
           );
         } else if (
           email != null &&
@@ -317,7 +317,7 @@ class SevDesk {
         };
 
         let contactAddress = await this.sevDesk.getContactAddressByContactId(
-          contactId
+          contactId,
         );
 
         console.log(contactAddress, "contactAddress");
@@ -326,7 +326,7 @@ class SevDesk {
         if (contactAddress.length > 0) {
           const updatedAddress = await this.sevDesk.updateContactAddress(
             contactAddress[0].id,
-            customerAddress
+            customerAddress,
           );
         } else {
           await this.sevDesk.createContactAddress(customerAddress);
@@ -347,7 +347,7 @@ class SevDesk {
   getPercentageFromTitle(title) {
     if (!title) return null;
 
-const match = title.match(/\((\d+)%\)/);
+    const match = title.match(/\((\d+)%\)/);
     // const match = title.match(/\((\d+)%\)/);
     if (match && match[1]) {
       return parseInt(match[1], 10);
@@ -363,7 +363,7 @@ const match = title.match(/\((\d+)%\)/);
     const sevUserId = 836992;
 
     if (!customer.tags) {
-      customer.tags = "test"
+      customer.tags = "test";
     }
 
     let number = await this.sevDesk.getOrderNumber();
@@ -378,7 +378,7 @@ const match = title.match(/\((\d+)%\)/);
         const endOfLineIndex = note.indexOf("\n", marktplatzIndex);
         const value = note.substring(
           marktplatzIndex + "Marktplatz:".length,
-          endOfLineIndex
+          endOfLineIndex,
         );
         marktplatz = value.trim();
       }
@@ -418,7 +418,7 @@ const match = title.match(/\((\d+)%\)/);
 
     if (order.note_attributes && order.note_attributes.length > 0) {
       const pickupLocationCompanyAttr = order.note_attributes.find(
-        (attr) => attr.name === "Pickup-Location-Company"
+        (attr) => attr.name === "Pickup-Location-Company",
       );
       const pickupLocationCompany = pickupLocationCompanyAttr?.value;
       const isSameCompany = pickupLocationCompany === company;
@@ -433,7 +433,7 @@ const match = title.match(/\((\d+)%\)/);
       .join(nl);
 
     const { formattedDate, formattedTime } = this.formatDateTime(
-      order.created_at
+      order.created_at,
     );
 
     let totalPrice = 0.0;
@@ -470,12 +470,10 @@ const match = title.match(/\((\d+)%\)/);
 
         // Match discount code from application
         LineItemsDiscountCode = order.discount_codes.find(
-          (dc) => dc.code === discountApp?.code
+          (dc) => dc.code === discountApp?.code,
         );
 
-        totalDiscount += LineItemsDiscountCode
-          ? 0.0
-          : discountAmount;
+        totalDiscount += LineItemsDiscountCode ? 0.0 : discountAmount;
       });
     });
 
@@ -542,7 +540,7 @@ const match = title.match(/\((\d+)%\)/);
       taxText,
       taxId,
       taxRate,
-      "variant type checking****************"
+      "variant type checking****************",
     );
 
     if (order.source_name === "pos" && order.financial_status === "pending") {
@@ -566,7 +564,8 @@ const match = title.match(/\((\d+)%\)/);
 
     //if shop_domain contains b2b
     console.log("shop_domain: " + shop_domain);
-    let footText = "Bitte überweisen Sie den Rechnungsbetrag unter Angabe der Rechnungsnummer auf das unten angegebene Konto. Der Rechnungsbetrag ist sofort fällig.";
+    let footText =
+      "Bitte überweisen Sie den Rechnungsbetrag unter Angabe der Rechnungsnummer auf das unten angegebene Konto. Der Rechnungsbetrag ist sofort fällig.";
     if (shop_domain.includes("b2b") || customer.tags.includes("B2B")) {
       footText =
         "\nFür B2b Kunden (sollten Sie nicht schon im Shop bezahlt haben): Der Gesamtbetrag ist ohne Abzug innerhalb von 7 Tagen zahlbar. Die Warenausgabe am Abholtag ist ausschließlich für die vollständig im Voraus bezahlten Bestellungen möglich. Sollte nach 7 Tagen kein Zahlungseingang zu verzeichnen sein, wird die Bestellung automatisch storniert.";
@@ -647,20 +646,20 @@ const match = title.match(/\((\d+)%\)/);
     let MehrwertsteuerTrueB2B = false;
     let MehrwertsteuerTrueB2BAmount = false;
     order.line_items.forEach((item) => {
-      // if (item.title === "Mehrwertsteuer 19%") {
+      if (item.title === "Mehrwertsteuer 19%") {
+        MehrwertsteuerTrueB2B = true;
+        MehrwertsteuerTrueB2BAmount = item.price * item.quantity;
+        // totalDiscount -= item.price * item.quantity;
+      }
+      //       if (
+      //   item.title === "Mehrwertsteuer 19%" &&
+      //   order.total_discounts === "0.00"
+      // ) {
       //   MehrwertsteuerTrueB2B = true;
       //   MehrwertsteuerTrueB2BAmount = item.price * item.quantity;
+
       //   totalDiscount -= item.price * item.quantity;
       // }
-      if (
-  item.title === "Mehrwertsteuer 19%" &&
-  order.total_discounts === "0.00"
-) {
-  MehrwertsteuerTrueB2B = true;
-  MehrwertsteuerTrueB2BAmount = item.price * item.quantity;
-
-  totalDiscount -= item.price * item.quantity;
-}
     });
 
     console.log("totalDiscount after mwst check: " + totalDiscount);
@@ -672,9 +671,29 @@ const match = title.match(/\((\d+)%\)/);
       console.log(
         "item:********** ",
         item.title,
-        item.title === "Mehrwertsteuer 19%"
+        item.title === "Mehrwertsteuer 19%",
       );
+      // if (
+      //   (shop_domain.includes("b2b") || customer.tags.includes("B2B")) &&
+      //   item.title === "Mehrwertsteuer 19%"
+      // ) {
+      //   return;
+      // }
+      // if (item.title === "Mehrwertsteuer 19%") return;
 
+      // Skip VAT line only for B2B
+
+      console.log(
+        "item:********** ",
+        item.title,
+        item.title === "Mehrwertsteuer 19%",
+      );
+      console.log(
+        "shop_domain.includes('b2b'------------------>s)",
+        shop_domain.includes("b2b"),
+        "customer.tags.includes('B2B')",
+        customer.tags.includes("B2B"),
+      );
       // if (item.title === "Mehrwertsteuer 19%") return;
 
       let { quantity, price, title } = item;
@@ -682,10 +701,8 @@ const match = title.match(/\((\d+)%\)/);
       // --------------------
       const itemVariantType = this.getPercentageFromTitle(item.variant_title);
 
-const itemTaxRate =
-  itemVariantType === null || itemVariantType === 0
-    ? "0"
-    : "19";
+      const itemTaxRate =
+        itemVariantType === null || itemVariantType === 0 ? "0" : "19";
 
       // ----- 1. PROPORTIONAL DISCOUNT -----
       const proportionalDiscount =
@@ -709,63 +726,71 @@ const itemTaxRate =
         net = price;
         gross = price;
       }
+      //       if (isB2B) {
+      //   net = parseFloat(price);
 
-      if (isB2B && MehrwertsteuerTrueB2B && order.total_discounts === "0.00") {
-        const productLines = order.line_items.filter(
-          (i) => i.title !== "Mehrwertsteuer 19%"
-        );
-        const productCount = productLines.length;
+      //   gross =
+      //     item.title === "Mehrwertsteuer 19%"
+      //       ? net
+      //       : net * (1 + itemTaxRate / 100);
+      // }
 
-        let vatShare = MehrwertsteuerTrueB2BAmount / productCount;
+      // if (isB2B && MehrwertsteuerTrueB2B && order.total_discounts === "0.00") {
+      //   const productLines = order.line_items.filter(
+      //     (i) => i.title !== "Mehrwertsteuer 19%",
+      //   );
+      //   const productCount = productLines.length;
 
-        // Round the share normally
-        vatShare = (Math.round(vatShare * 1000) / 1000) / quantity;
+      //   let vatShare = MehrwertsteuerTrueB2BAmount / productCount;
 
-        // Detect LAST PRODUCT to fix remainder
-        const isLast =
-          productLines[productCount - 1].title === item.title &&
-          productLines[productCount - 1].price === item.price;
+      //   // Round the share normally
+      //   vatShare = Math.round(vatShare * 1000) / 1000 / quantity;
 
-        totalLineItemsPrice += price * quantity;
-        // Remainder (positive or negative)
+      //   // Detect LAST PRODUCT to fix remainder
+      //   const isLast =
+      //     productLines[productCount - 1].title === item.title &&
+      //     productLines[productCount - 1].price === item.price;
 
-        net = parseFloat(price) + vatShare;
-        gross = net;
+      //   totalLineItemsPrice += price * quantity;
+      //   // Remainder (positive or negative)
 
-        totalLineItemsPriceAdjust += gross * quantity;
+      //   net = parseFloat(price) + vatShare;
+      //   gross = net;
 
-        console.log(
-          "VAT SHARE (adjusted)",
-          isLast,
-          net,
-          totalLineItemsPrice.toFixed(2),
-          totalLineItemsPriceAdjust,
-          totalLineItemsPriceAdjust.toFixed(2)
-        );
+      //   totalLineItemsPriceAdjust += gross * quantity;
 
-        if (isLast) {
-          totalLineItemsPriceAdjust -= parseFloat(
-            LineItemsDiscountCode?.amount || 0
-          );
-        }
+      //   console.log(
+      //     "VAT SHARE (adjusted)",
+      //     isLast,
+      //     net,
+      //     totalLineItemsPrice.toFixed(2),
+      //     totalLineItemsPriceAdjust,
+      //     totalLineItemsPriceAdjust.toFixed(2),
+      //   );
 
-        const remainder = isLast
-          ? totalLineItemsPrice.toFixed(2) -
-          Math.floor(totalLineItemsPriceAdjust * 100) / 100
-          : 0;
+      //   if (isLast) {
+      //     totalLineItemsPriceAdjust -= parseFloat(
+      //       LineItemsDiscountCode?.amount || 0,
+      //     );
+      //   }
 
-        console.log("REMAINDER", remainder);
+      //   const remainder = isLast
+      //     ? totalLineItemsPrice.toFixed(2) -
+      //       Math.floor(totalLineItemsPriceAdjust * 100) / 100
+      //     : 0;
 
-        if (isLast && remainder !== 0) {
-          const perUnitAdj = remainder / quantity;
-          net = parseFloat(price) + vatShare - perUnitAdj;
-          gross = net;
-        }
-      }
+      //   console.log("REMAINDER", remainder);
+
+      //   if (isLast && remainder !== 0) {
+      //     const perUnitAdj = remainder / quantity;
+      //     net = parseFloat(price) + vatShare - perUnitAdj;
+      //     gross = net;
+      //   }
+      // }
 
       if (!isB2B) {
         const productLines = order.line_items.filter(
-          (i) => i.title !== "Mehrwertsteuer 19%"
+          (i) => i.title !== "Mehrwertsteuer 19%",
         );
 
         const productCount = productLines.length;
@@ -777,7 +802,9 @@ const itemTaxRate =
         totalLineItemsPriceAdjust += gross * quantity;
 
         // actual invoice target sum (NO VAT, NON-B2B)
-        const targetTotal = Number(order.current_subtotal_price_set.shop_money.amount);
+        const targetTotal = Number(
+          order.current_subtotal_price_set.shop_money.amount,
+        );
 
         // compute remainder using exact float difference
         let remainder = 0;
@@ -788,15 +815,15 @@ const itemTaxRate =
           net,
           targetTotal,
           totalLineItemsPriceAdjust,
-          totalLineItemsPriceAdjust.toFixed(2)
+          totalLineItemsPriceAdjust.toFixed(2),
         );
 
         if (isLast) {
           totalLineItemsPriceAdjust -= parseFloat(
-            LineItemsDiscountCode?.amount || 0
+            LineItemsDiscountCode?.amount || 0,
           );
           remainder = Number(
-            (targetTotal - totalLineItemsPriceAdjust).toFixed(2)
+            (targetTotal - totalLineItemsPriceAdjust).toFixed(2),
           );
           const perUnitFix = remainder / quantity;
 
@@ -819,7 +846,14 @@ const itemTaxRate =
         price: net,
         priceGross: gross,
         // taxRate: isB2B ? taxRate : taxRate,
-        taxRate: isB2B ? taxRate : itemTaxRate,
+        // taxRate: isB2B ? taxRate : itemTaxRate,
+        // taxRate:
+        //   item.title === "Mehrwertsteuer 19%"
+        //     ? "0"
+        //     : isB2B
+        //     ? taxRate
+        //     : itemTaxRate,
+        taxRate: item.title === "Mehrwertsteuer 19%" ? "0" : itemTaxRate,
         name: title,
         unity: { id: 1, objectName: "Unity" },
       };
@@ -827,10 +861,8 @@ const itemTaxRate =
       invoiceData.invoicePosSave.push(invoicePos);
     });
 
-
     //if foreach order.discount_applications is not empty and has item with title "Benutzerdefinierter Rabatt"
     let discountSave = [];
-
 
     if (order.discount_applications.length > 0) {
       order.discount_applications.forEach((item) => {
@@ -859,7 +891,7 @@ const itemTaxRate =
                 discount: true,
                 value: MehrwertsteuerTrueB2B
                   ? order?.total_discounts_set?.shop_money.amount -
-                  MehrwertsteuerTrueB2BAmount
+                    MehrwertsteuerTrueB2BAmount
                   : order?.total_discounts_set?.shop_money.amount,
                 text: "B2B Rabatt",
                 percentage: false,
@@ -917,7 +949,7 @@ const itemTaxRate =
           console.log(
             "LineItemsDiscountCode matched: ",
             LineItemsDiscountCode,
-            item
+            item,
           );
           discountSave.push({
             objectName: "Discounts",
@@ -931,7 +963,9 @@ const itemTaxRate =
       });
     }
 
-    if (!LineItemsDiscountCode && discountSave.length === 0 &&
+    if (
+      !LineItemsDiscountCode &&
+      discountSave.length === 0 &&
       lineItemsTotal > order.current_subtotal_price_set.shop_money.amount
     ) {
       discountSave.push({
@@ -939,8 +973,7 @@ const itemTaxRate =
         mapAll: true,
         discount: true,
         value: parseFloat(
-          lineItemsTotal -
-          order.current_subtotal_price_set.shop_money.amount
+          lineItemsTotal - order.current_subtotal_price_set.shop_money.amount,
         ).toLocaleString(),
         text: "Rabatt",
         percentage: false,
@@ -981,7 +1014,7 @@ const itemTaxRate =
 
     if ("total_shipping_price_set" in order) {
       const shippingFee = parseFloat(
-        order.total_shipping_price_set.shop_money.amount
+        order.total_shipping_price_set.shop_money.amount,
       );
       if (shippingFee > 0) {
         // console.log(taxRate);
@@ -1021,39 +1054,44 @@ const itemTaxRate =
 
     console.log("invoiceData", invoiceData);
     // return invoiceData;
-//     const invoice = await this.sevDesk.createInvoice(invoiceData);
-//     console.log(
-//   JSON.stringify(invoiceData.invoicePosSave, null, 2)
-// );
+    //     const invoice = await this.sevDesk.createInvoice(invoiceData);
+    //     console.log(
+    //   JSON.stringify(invoiceData.invoicePosSave, null, 2)
+    // );
 
-// return invoiceData;
-//   }
-// console.log(
-//   "FINAL FULL INVOICE JSON",
-//   JSON.stringify(invoiceData, null, 2)
-// );
+    // return invoiceData;
+    // }
+    //   console.log(
+    //     "FINAL FULL INVOICE JSON",
+    //     JSON.stringify(invoiceData, null, 2),
+    //   );
+    // }
 
-// return {
-//   debug: true,
-//   invoiceData
-// };
-  // const invoice = await this.sevDesk.createInvoice(invoiceData);
-  //   console.log("invoice", invoice);
-
-  //   return invoice.invoice;
-  
-  // }
-//   console.log(
-// //   JSON.stringify(invoiceData, null, 2)
-// );
-  const invoice = await this.sevDesk.createInvoice(invoiceData);
+    const invoice = await this.sevDesk.createInvoice(invoiceData);
     console.log("invoice", invoice);
 
     return invoice.invoice;
   }
 
+  // return {
+  //   debug: true,
+  //   invoiceData
+  // };
+  // const invoice = await this.sevDesk.createInvoice(invoiceData);
+  //   console.log("invoice", invoice);
 
- 
+  //   return invoice.invoice;
+
+  // }
+  //   console.log(
+  // //   JSON.stringify(invoiceData, null, 2)
+  // );
+  // const invoice = await this.sevDesk.createInvoice(invoiceData);
+  //   console.log("invoice", invoice);
+
+  //   return invoice.invoice;
+  // }
+
   //   console.log("invoice", invoice);
 
   //   return invoice.invoice;
@@ -1065,7 +1103,7 @@ const itemTaxRate =
     const sevUserId = 836992;
 
     if (!customer.tags) {
-      customer.tags = "test"
+      customer.tags = "test";
     }
 
     let number = await this.sevDesk.getOrderNumber();
@@ -1137,7 +1175,7 @@ const itemTaxRate =
       taxText,
       taxId,
       taxRate,
-      "variant type checking****************"
+      "variant type checking****************",
     );
 
     //const taxId = hasMwStBefreiung ? "88970" : "88971";
@@ -1147,7 +1185,7 @@ const itemTaxRate =
 
     if (order.source_name === "pos" && order.financial_status === "pending") {
       console.log(
-        "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@update invoice api**************"
+        "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@update invoice api**************",
       );
       // taxText = "Steuerfrei 0% lt. § 12 Absatz 3 UStG";
       // taxId = "83858";
@@ -1166,14 +1204,15 @@ const itemTaxRate =
     }
 
     const { formattedDate, formattedTime } = this.formatDateTime(
-      order.created_at
+      order.created_at,
     );
 
     let headText = `<em>Hallo ${kundenVorname} ${kundenNachname},  \t vielen Dank für Ihre Bestellung vom ${formattedDate} um ${formattedTime} Uhr.  \t Sie erhalten heute Ihre Rechnung über die folgenden Positionen zu Auftrag ${order.name}.</em>`;
 
     //if shop_domain contains b2b
     console.log("shop_domain: " + shop_domain);
-    let footText = "Bitte überweisen Sie den Rechnungsbetrag unter Angabe der Rechnungsnummer auf das unten angegebene Konto. Der Rechnungsbetrag ist sofort fällig.";
+    let footText =
+      "Bitte überweisen Sie den Rechnungsbetrag unter Angabe der Rechnungsnummer auf das unten angegebene Konto. Der Rechnungsbetrag ist sofort fällig.";
     if (shop_domain.includes("b2b") || customer.tags === "B2B") {
       footText =
         "Für B2b Kunden (sollten Sie nicht schon im Shop bezahlt haben): Der Gesamtbetrag ist ohne Abzug innerhalb von 7 Tagen zahlbar. Die Warenausgabe am Abholtag ist ausschließlich für die vollständig im Voraus bezahlten Bestellungen möglich. Sollte nach 7 Tagen kein Zahlungseingang zu verzeichnen sein, wird die Bestellung automatisch storniert.";
@@ -1201,7 +1240,7 @@ const itemTaxRate =
     const countryId = await this.sevDesk.getCountryId(country);
 
     const existingInvoicePos = await this.sevDesk.getInvoicePositionsById(
-      existingInvoice.id
+      existingInvoice.id,
     );
 
     const name = customer.surename + " " + customer.familyname;
@@ -1299,7 +1338,7 @@ const itemTaxRate =
             ((quantity * price) / totalPrice) * totalDiscount;
 
           const discountedPrice = parseFloat(
-            price - proportionalDiscount / quantity
+            price - proportionalDiscount / quantity,
           );
           const roundedDiscountedPrice =
             Math.round(discountedPrice * 100) / 100;
@@ -1385,7 +1424,7 @@ const itemTaxRate =
 
       const bookedInvoice = await this.sevDesk.bookInvoice(
         invoice.id,
-        bookData
+        bookData,
       );
 
       return bookedInvoice;
@@ -1442,7 +1481,7 @@ const itemTaxRate =
 
     if (order.discounts) {
       hasMwStBefreiung = order.discounts.some((discount) =>
-        discount.code.toLowerCase().includes("mwst")
+        discount.code.toLowerCase().includes("mwst"),
       );
     }
 
@@ -1517,19 +1556,16 @@ const itemTaxRate =
       // const priceNet = priceGross / (1 + taxRate / 100);
       // const priceTax = priceGross - priceNet;
 
-      const itemTaxRate =
-  line_item.tax_lines?.[0]?.rate
-    ? line_item.tax_lines[0].rate * 100
-    : 0;
+      const itemTaxRate = line_item.tax_lines?.[0]?.rate
+        ? line_item.tax_lines[0].rate * 100
+        : 0;
 
-const priceGross = subtotal / quantity;
+      const priceGross = subtotal / quantity;
 
-const priceNet =
-  itemTaxRate > 0
-    ? priceGross / (1 + itemTaxRate / 100)
-    : priceGross;
+      const priceNet =
+        itemTaxRate > 0 ? priceGross / (1 + itemTaxRate / 100) : priceGross;
 
-const priceTax = priceGross - priceNet;
+      const priceTax = priceGross - priceNet;
       const creditNotePos = {
         unity: { id: 1, objectName: "Unity" },
         quantity,
@@ -1539,7 +1575,8 @@ const priceTax = priceGross - priceNet;
         taxSet,
         objectName: "CreditNotePos",
         // taxRate,
-        taxRate: itemTaxRate, 
+        // taxRate: itemTaxRate,
+        taxRate: title === "Mehrwertsteuer 19%" ? 0 : itemTaxRate,
         priceGross,
         priceTax,
         price: priceNet,
@@ -1598,20 +1635,20 @@ const priceTax = priceGross - priceNet;
 
     console.log("creditNoteData", creditNoteData);
 
-//     console.log(
-//   "FINAL CREDIT NOTE JSON",
-//   JSON.stringify(creditNoteData, null, 2)
-// );
+    //     console.log(
+    //   "FINAL CREDIT NOTE JSON",
+    //   JSON.stringify(creditNoteData, null, 2)
+    // );
 
-// return {
-//   debug: true,
-//   creditNoteData
-// };
+    // return {
+    //   debug: true,
+    //   creditNoteData
+    // };
 
-//   }
+    //   }
 
     const creditNoteResponse = await this.sevDesk.createCreditNote(
-      creditNoteData
+      creditNoteData,
     );
 
     console.log("creditNoteResponse", creditNoteResponse);
@@ -1666,7 +1703,7 @@ const priceTax = priceGross - priceNet;
 
       const bookedCreditNote = await this.sevDesk.bookCreditNote(
         creditNote.id,
-        bookData
+        bookData,
       );
       return bookedCreditNote;
     } catch (error) {
@@ -1687,7 +1724,7 @@ const priceTax = priceGross - priceNet;
 
       const cancelledInvoice = await this.sevDesk.cancelInvoice(
         invoiceId,
-        invoiceData
+        invoiceData,
       );
 
       if (
@@ -1702,7 +1739,7 @@ const priceTax = priceGross - priceNet;
           await this.sevDesk.sendCreditNoteViaEmail(
             cancelledInvoice.id,
             email,
-            order.name
+            order.name,
           );
 
         console.log(sendCreditNoteViaEmail, "sendCreditNoteViaEmail");
@@ -1720,7 +1757,7 @@ const priceTax = priceGross - priceNet;
 
         const bookedCreditNote = await this.sevDesk.bookCreditNote(
           cancelledInvoice.id,
-          bookData
+          bookData,
         );
         // console.log(bookedCreditNote, "bookedCreditNote");
       }
